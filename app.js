@@ -44,7 +44,7 @@ storage.on('data', function (data) {
 
 	if (data && typeof data === 'object'){
 
-		var coll = db.collection(collection);
+		var coll = mongodb.collection(collection);
 
 		coll.insertOne(data, function (error, result) {
 			if (error) {

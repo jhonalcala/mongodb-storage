@@ -12,23 +12,6 @@
 	"required": true
   }
 ]
-{
-  {
-  "name": "table",
-  "label": "URL",
-  "type": "String",
-  "required": false
-  },
-  {
-  "name": "fieldlist",
-  "label": "Field List",
-  "type": "Fields",
-  "required": true
-  "fields"	: {
-		fieldname : datatatype,
-	}
-  }
-}
 
 
 
