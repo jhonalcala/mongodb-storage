@@ -1,0 +1,24 @@
+{
+  "name": "storage-plugin-seed",
+  "description": "Storage Plugin seed project for the Reekoh IoT Platform. Helps engineers to start developing storage plugins for the Reekoh IoT Platform.",
+  "version": "0.0.1",
+  "author": "Reekoh, Inc.",
+  "main": "app.js",
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Reekoh/storage-plugin-seed"
+  },
+  "dependencies": {
+    "mongodb": "^2.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-cli": "^0.3.0",
+    "gulp-jshint": "^1.11.2",
+    "gulp-jsonlint": "^1.1.0",
+    "gulp-plumber": "^1.0.1"
+  }
+}
