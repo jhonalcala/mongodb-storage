@@ -1,7 +1,7 @@
 [
   {
-	"name": "url",
-	"label": "URL",
+	"name": "connstring",
+	"label": "Connection String",
 	"type": "String",
 	"required": false
   },

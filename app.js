@@ -1,36 +1,23 @@
 'use strict';
 
-/*
- * Initialize storage.
- */
-var Storage = require('./storage'),
-	storage = new Storage(),
-	mongodb = require('mongodb').MongoClient,
+var platform   = require('./platform'),
+	mongodb    = require('mongodb').MongoClient,
+	isJSON     = require('is-json'),
 	collection = '';
 
 /*
  * Listen for the ready event.
  */
-storage.on('ready', function (options) {
-	/*
-	 * Connect to the database based on the options provided. See config.json
-	 *
-	 * Sample Parameters:
-	 *
-	 * URL = options.url
-	 * Table/Collection = options.table or options.collection
-	 *
-	 * Note: Option Names are based on what you specify on the config.json.
-	 */
+platform.on('ready', function (options) {
 	collection = options.collection;
 
-	mongodb.connect(options.url, function(error, db) {
+	mongodb.connect(options.connstring, function (error, db) {
 		if (error) {
-			console.log('Error connecting to Mongo Database', error);
-			storage.sendError(error);
+			console.error('Error connecting to MongoDB', error);
+			platform.handleException(error);
 		}
 		else
-			storage.sendLog('Connected to Mongo Database', db.databaseName);
+			platform.log('Connected to MongoDB', db.databaseName);
 
 	});
 });
@@ -38,27 +25,21 @@ storage.on('ready', function (options) {
 /*
  * Listen for the data event.
  */
-storage.on('data', function (data) {
-
-	// TODO: Send data to the database. Use the already initialized connection variable above.
-
-	if (data && typeof data === 'object'){
-
+platform.on('data', function (data) {
+	if (isJSON(data, true)) {
 		var coll = mongodb.collection(collection);
 
 		coll.insertOne(data, function (error, result) {
 			if (error) {
-				console.log('Failed to save record in Mongo Database', error);
-				storage.sendError(error);
+				console.error('Failed to save record in MongoDB', error);
+				platform.handleException(error);
 			}
 			else
-				storage.sendLog('Record Successfully saved to Mongo Database', result);
+				platform.log('Record Successfully saved to MongoDB', result);
 		});
-	} else {
-		var err = { msg: 'Failed to save record in Mongo Database',
-					data: data};
-		console.log('Failed to save record in Mongo Database', err);
-		storage.sendLog(err); //send data as log not error
 	}
-
+	else {
+		console.error('Invalid Data', data);
+		platform.log('Invalid Data', data); //send data as log not error
+	}
 });
