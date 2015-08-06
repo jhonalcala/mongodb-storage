@@ -1,9 +1,9 @@
 'use strict';
 
-var platform   = require('./platform'),
-	mongodb    = require('mongodb').MongoClient,
-	isJSON     = require('is-json'),
-	collection = '';
+var platform    = require('./platform'),
+	mongoClient = require('mongodb').MongoClient,
+	isJSON      = require('is-json'),
+	db, collection;
 
 /*
  * Listen for the ready event.
@@ -11,14 +11,15 @@ var platform   = require('./platform'),
 platform.on('ready', function (options) {
 	collection = options.collection;
 
-	mongodb.connect(options.connstring, function (error, db) {
+	mongoClient.connect(options.connstring, function (error, _db) {
 		if (error) {
 			console.error('Error connecting to MongoDB', error);
 			platform.handleException(error);
 		}
-		else
+		else {
 			platform.log('Connected to MongoDB', db.databaseName);
-
+			db = _db;
+		}
 	});
 });
 
@@ -27,9 +28,9 @@ platform.on('ready', function (options) {
  */
 platform.on('data', function (data) {
 	if (isJSON(data, true)) {
-		var coll = mongodb.collection(collection);
+		var _collection = db.collection(collection);
 
-		coll.insertOne(data, function (error, result) {
+		_collection.insertOne(data, function (error, result) {
 			if (error) {
 				console.error('Failed to save record in MongoDB', error);
 				platform.handleException(error);
