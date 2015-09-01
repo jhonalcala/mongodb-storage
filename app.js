@@ -8,7 +8,7 @@ var platform    = require('./platform'),
 /*
  * Listen for the ready event.
  */
-platform.on('ready', function (options) {
+platform.once('ready', function (options) {
 	collection = options.collection;
 
 	mongoClient.connect(options.connstring, function (error, _db) {
@@ -36,11 +36,11 @@ platform.on('data', function (data) {
 				platform.handleException(error);
 			}
 			else
-				platform.log('Record Successfully saved to MongoDB', result);
+				platform.log('Record Successfully saved to MongoDB', result.toString());
 		});
 	}
 	else {
 		console.error('Invalid Data', data);
-		platform.log('Invalid Data', data); //send data as log not error
+		platform.log('Invalid Data', data);
 	}
 });
