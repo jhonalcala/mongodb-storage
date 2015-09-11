@@ -1,7 +1,7 @@
 'use strict';
 
 var platform    = require('./platform'),
-	mongoClient = require('mongodb').MongoClient,
+	MongoClient = require('mongodb').MongoClient,
 	isJSON      = require('is-json'),
 	db, collection;
 
@@ -11,14 +11,15 @@ var platform    = require('./platform'),
 platform.once('ready', function (options) {
 	collection = options.collection;
 
-	mongoClient.connect(options.connstring, function (error, _db) {
+	MongoClient.connect(options.connstring, function (error, _db) {
 		if (error) {
-			console.error('Error connecting to MongoDB', error);
+			console.error('Error connecting to MongoDB.', error);
 			platform.handleException(error);
 		}
 		else {
-			platform.log('Connected to MongoDB', db.databaseName);
 			db = _db;
+			platform.log('Connected to MongoDB.');
+			platform.notifyReady(); // Need to notify parent process that initialization of this plugin is done.
 		}
 	});
 });
@@ -32,11 +33,11 @@ platform.on('data', function (data) {
 
 		_collection.insertOne(data, function (error, result) {
 			if (error) {
-				console.error('Failed to save record in MongoDB', error);
+				console.error('Failed to save record in MongoDB.', error);
 				platform.handleException(error);
 			}
 			else
-				platform.log('Record Successfully saved to MongoDB', result.toString());
+				platform.log('Record Successfully saved to MongoDB.', result.toString());
 		});
 	}
 	else {
