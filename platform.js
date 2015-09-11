@@ -13,6 +13,7 @@ function Platform() {
 	var self = this;
 
 	process.on('uncaughtException', function (error) {
+		console.error(error);
 		self.handleException(error);
 		process.exit(1);
 	});
@@ -31,6 +32,19 @@ Platform.init = function () {
 			self.emit('ready', m.data.options);
 		else if (m.type === 'data')
 			self.emit('data', m.data);
+	});
+};
+
+Platform.prototype.notifyReady = function (callback) {
+	callback = callback || function () {
+		};
+
+	setImmediate(function () {
+		process.send({
+			type: 'ready'
+		});
+
+		callback();
 	});
 };
 

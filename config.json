@@ -3,7 +3,7 @@
 	"name": "connstring",
 	"label": "Connection String",
 	"type": "String",
-	"required": false
+	"required": true
   },
   {
 	"name": "collection",
