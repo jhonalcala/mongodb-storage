@@ -4,7 +4,7 @@ var cp          = require('child_process'),
 	assert      = require('assert'),
 	MongoClient = require('mongodb').MongoClient,
 	randomId    = require('node-uuid').v4(),
-	connString  = 'mongodb://127.0.0.1:27017',
+	connString  = 'mongodb://localhost:27017/test',
 	collection  = 'test',
 	storage;
 
