@@ -1,18 +1,12 @@
-[
-  {
-	"name": "connstring",
+{
+  "connstring": {
 	"label": "Connection String",
 	"type": "String",
 	"required": true
   },
-  {
-	"name": "collection",
+  "collection": {
 	"label": "Collection",
-	"type": "String",
+	"type": "Number",
 	"required": true
   }
-]
-
-
-
-
+}

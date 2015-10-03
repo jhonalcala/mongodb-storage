@@ -6,25 +6,6 @@ var platform    = require('./platform'),
 	db, collection;
 
 /*
- * Listen for the ready event.
- */
-platform.once('ready', function (options) {
-	collection = options.collection;
-
-	MongoClient.connect(options.connstring, function (error, _db) {
-		if (error) {
-			console.error('Error connecting to MongoDB.', error);
-			platform.handleException(error);
-		}
-		else {
-			db = _db;
-			platform.log('Connected to MongoDB.');
-			platform.notifyReady(); // Need to notify parent process that initialization of this plugin is done.
-		}
-	});
-});
-
-/*
  * Listen for the data event.
  */
 platform.on('data', function (data) {
@@ -44,4 +25,23 @@ platform.on('data', function (data) {
 		console.error('Invalid Data', data);
 		platform.log('Invalid Data', data);
 	}
+});
+
+/*
+ * Listen for the ready event.
+ */
+platform.once('ready', function (options) {
+	collection = options.collection;
+
+	MongoClient.connect(options.connstring, function (error, _db) {
+		if (error) {
+			console.error('Error connecting to MongoDB.', error);
+			platform.handleException(error);
+		}
+		else {
+			db = _db;
+			platform.log('Connected to MongoDB.');
+			platform.notifyReady(); // Need to notify parent process that initialization of this plugin is done.
+		}
+	});
 });

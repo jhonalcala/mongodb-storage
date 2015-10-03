@@ -1,4 +1,4 @@
-# Mongodb Storage
+# MongoDB Storage
 
 [![Build Status](https://travis-ci.org/Reekoh/mongodb-storage.svg)](https://travis-ci.org/Reekoh/mongodb-storage)
 ![Dependencies](https://img.shields.io/david/Reekoh/mongodb-storage.svg)
