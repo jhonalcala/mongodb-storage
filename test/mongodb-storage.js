@@ -11,6 +11,10 @@ var cp          = require('child_process'),
 describe('MongoDB Storage', function () {
 	this.slow(5000);
 
+	after('terminate child process', function () {
+		storage.kill('SIGKILL');
+	});
+
 	describe('#spawn', function () {
 		it('should spawn a child process', function () {
 			should.ok(storage = cp.fork(process.cwd()), 'Child process not spawned.');
