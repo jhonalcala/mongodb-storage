@@ -1,7 +1,7 @@
 'use strict';
 
 var cp          = require('child_process'),
-	assert      = require('assert'),
+	should      = require('should'),
 	MongoClient = require('mongodb').MongoClient,
 	randomId    = require('node-uuid').v4(),
 	connString  = 'mongodb://localhost:27017/test',
@@ -9,23 +9,22 @@ var cp          = require('child_process'),
 	storage;
 
 describe('MongoDB Storage', function () {
+	this.slow(5000);
+
 	describe('#spawn', function () {
 		it('should spawn a child process', function () {
-			assert.ok(storage = cp.fork(process.cwd()), 'Child process not spawned.');
+			should.ok(storage = cp.fork(process.cwd()), 'Child process not spawned.');
 		});
 	});
 
 	describe('#handShake', function () {
-		it('should notify the parent process when ready within 5 seconds', function () {
-			var initTimeout;
+		it('should notify the parent process when ready within 5 seconds', function (done) {
+			this.timeout(5000);
 
-			storage.on('ready', function () {
-				clearTimeout(initTimeout);
+			storage.on('message', function (message) {
+				if (message.type === 'ready')
+					done();
 			});
-
-			initTimeout = setTimeout(function () {
-				assert.ok(false, 'Plugin init timeout.');
-			}, 5000);
 
 			storage.send({
 				type: 'ready',
@@ -36,37 +35,37 @@ describe('MongoDB Storage', function () {
 					}
 				}
 			}, function (error) {
-				assert.ifError(error);
+				should.ifError(error);
 			});
 		});
 	});
 
 	describe('#data', function () {
-		it('should process the data', function () {
+		it('should process and insert the data into the database', function (done) {
 			storage.send({
 				type: 'data',
 				data: {
 					rand: randomId
 				}
-			}, function (error) {
-				assert.ifError(error);
-			});
+			}, done);
 		});
 
-		it('should have inserted the document on the database', function () {
+		it('should have inserted the document on the database', function (done) {
 			MongoClient.connect(connString, function (error, db) {
-				assert.ifError(error);
+				should.ifError(error);
 
 				var _collection = db.collection(collection);
 
 				_collection.find({
 					rand: randomId
 				}).toArray(function (err, docs) {
-					assert.ifError(error);
-					assert.equal(1, docs.length);
+					should.ifError(error);
+					should.equal(1, docs.length);
+
 					console.log('Found the following records');
-					console.dir(docs);
-					db.close(true);
+					console.log(docs);
+
+					db.close(true, done);
 				});
 			});
 		});
