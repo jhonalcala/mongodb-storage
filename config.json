@@ -2,11 +2,13 @@
   "connstring": {
 	"label": "Connection String",
 	"type": "String",
-	"required": true
+	"required": true,
+	"help": "Specify the full MongoDB Connection String."
   },
   "collection": {
 	"label": "Collection",
 	"type": "Number",
-	"required": true
+	"required": true,
+	"help": "Specify the database collection to use."
   }
 }
