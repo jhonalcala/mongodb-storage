@@ -12,13 +12,11 @@ platform.on('data', function (data) {
 	if (isJSON(data, true)) {
 		var _collection = db.collection(collection);
 
-		_collection.insertOne(data, function (error, result) {
+		_collection.insertOne(data, function (error) {
 			if (error) {
 				console.error('Failed to save record in MongoDB.', error);
 				platform.handleException(error);
 			}
-			else
-				platform.log('Record Successfully saved to MongoDB.', result.toString());
 		});
 	}
 	else {
