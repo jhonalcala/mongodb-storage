@@ -1,23 +1,24 @@
 'use strict';
 
+const CONN_STRING = 'mongodb://localhost:27017/test',
+	  COLLECTION = 'test';
+
 var cp          = require('child_process'),
 	should      = require('should'),
 	MongoClient = require('mongodb').MongoClient,
 	randomId    = require('node-uuid').v4(),
-	connString  = 'mongodb://localhost:27017/test',
-	collection  = 'test',
-	storage;
+	mongoStorage;
 
 describe('MongoDB Storage', function () {
 	this.slow(5000);
 
 	after('terminate child process', function () {
-		storage.kill('SIGKILL');
+		mongoStorage.kill('SIGKILL');
 	});
 
 	describe('#spawn', function () {
 		it('should spawn a child process', function () {
-			should.ok(storage = cp.fork(process.cwd()), 'Child process not spawned.');
+			should.ok(mongoStorage = cp.fork(process.cwd()), 'Child process not spawned.');
 		});
 	});
 
@@ -25,17 +26,17 @@ describe('MongoDB Storage', function () {
 		it('should notify the parent process when ready within 5 seconds', function (done) {
 			this.timeout(5000);
 
-			storage.on('message', function (message) {
+			mongoStorage.on('message', function (message) {
 				if (message.type === 'ready')
 					done();
 			});
 
-			storage.send({
+			mongoStorage.send({
 				type: 'ready',
 				data: {
 					options: {
-						connstring: connString,
-						collection: collection
+						connstring: CONN_STRING,
+						collection: COLLECTION
 					}
 				}
 			}, function (error) {
@@ -46,7 +47,7 @@ describe('MongoDB Storage', function () {
 
 	describe('#data', function () {
 		it('should process and insert the data into the database', function (done) {
-			storage.send({
+			mongoStorage.send({
 				type: 'data',
 				data: {
 					rand: randomId
@@ -55,10 +56,10 @@ describe('MongoDB Storage', function () {
 		});
 
 		it('should have inserted the document on the database', function (done) {
-			MongoClient.connect(connString, function (error, db) {
+			MongoClient.connect(CONN_STRING, function (error, db) {
 				should.ifError(error);
 
-				var _collection = db.collection(collection);
+				var _collection = db.collection(COLLECTION);
 
 				_collection.find({
 					rand: randomId

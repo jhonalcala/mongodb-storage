@@ -7,8 +7,8 @@
   },
   "collection": {
 	"label": "Collection",
-	"type": "Number",
+	"type": "String",
 	"required": true,
-	"help": "Specify the database collection to use."
+	"help": "Specify the database collection to insert the data to."
   }
 }
