@@ -1,14 +1,14 @@
 'use strict';
 
-var platform    = require('./platform'),
-	MongoClient = require('mongodb').MongoClient,
-	isJSON      = require('is-json'),
+var platform = require('./platform'),
 	db, collection;
 
 /*
  * Listen for the data event.
  */
 platform.on('data', function (data) {
+	var isJSON = require('is-json');
+
 	if (isJSON(data, true)) {
 		var _collection = db.collection(collection);
 
@@ -17,11 +17,17 @@ platform.on('data', function (data) {
 				console.error('Failed to save record in MongoDB.', error);
 				platform.handleException(error);
 			}
+			else {
+				platform.log(JSON.stringify({
+					title: 'Record inserted in MongoDB',
+					data: data
+				}));
+			}
 		});
 	}
 	else {
 		console.error('Invalid Data', data);
-		platform.log('Invalid Data', data);
+		platform.handleException(new Error('Invalid data received ' + data));
 	}
 });
 
@@ -29,6 +35,8 @@ platform.on('data', function (data) {
  * Listen for the ready event.
  */
 platform.once('ready', function (options) {
+	var MongoClient = require('mongodb').MongoClient;
+
 	collection = options.collection;
 
 	MongoClient.connect(options.connstring, function (error, _db) {
@@ -38,8 +46,8 @@ platform.once('ready', function (options) {
 		}
 		else {
 			db = _db;
-			platform.log('Connected to MongoDB.');
-			platform.notifyReady(); // Need to notify parent process that initialization of this plugin is done.
+			platform.log('MongoDB Storage Initialized.');
+			platform.notifyReady();
 		}
 	});
 });
