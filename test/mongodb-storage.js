@@ -10,7 +10,7 @@ var cp          = require('child_process'),
 	mongoStorage;
 
 describe('MongoDB Storage', function () {
-	this.slow(5000);
+	this.slow(8000);
 
 	after('terminate child process', function () {
 		mongoStorage.kill('SIGKILL');
@@ -24,7 +24,7 @@ describe('MongoDB Storage', function () {
 
 	describe('#handShake', function () {
 		it('should notify the parent process when ready within 5 seconds', function (done) {
-			this.timeout(5000);
+			this.timeout(8000);
 
 			mongoStorage.on('message', function (message) {
 				if (message.type === 'ready')
