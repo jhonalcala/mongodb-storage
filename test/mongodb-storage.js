@@ -13,7 +13,13 @@ describe('MongoDB Storage', function () {
 	this.slow(8000);
 
 	after('terminate child process', function () {
-		mongoStorage.kill('SIGKILL');
+		mongoStorage.send({
+			type: 'close'
+		});
+
+		setTimeout(function () {
+			mongoStorage.kill('SIGKILL');
+		}, 4000);
 	});
 
 	describe('#spawn', function () {
