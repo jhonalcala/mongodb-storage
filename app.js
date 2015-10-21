@@ -1,6 +1,7 @@
 'use strict';
 
-var platform = require('./platform'),
+var MongoClient = require('mongodb').MongoClient,
+	platform    = require('./platform'),
 	db, collection;
 
 /*
@@ -35,8 +36,6 @@ platform.on('data', function (data) {
  * Listen for the ready event.
  */
 platform.once('ready', function (options) {
-	var MongoClient = require('mongodb').MongoClient;
-
 	collection = options.collection;
 
 	MongoClient.connect(options.connstring, function (error, _db) {
