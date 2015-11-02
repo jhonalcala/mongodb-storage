@@ -1,7 +1,7 @@
 'use strict';
 
-const CONN_STRING = 'mongodb://localhost:27017/test',
-	  COLLECTION = 'test';
+const CONN_STRING = 'mongodb://reekoh:reekoh@ds041934.mongolab.com:41934/demo1',
+	  COLLECTION = 'data';
 
 var cp          = require('child_process'),
 	should      = require('should'),
