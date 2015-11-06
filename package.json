@@ -1,7 +1,7 @@
 {
   "name": "mongodb-storage",
   "description": "MongoDB Storage Plugin for Reekoh IoT Platform.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "Reekoh, Inc.",
   "main": "app.js",
   "scripts": {
