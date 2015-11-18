@@ -1,13 +1,21 @@
 'use strict';
 
-const CONN_STRING = 'mongodb://reekoh:reekoh@ds041934.mongolab.com:41934/demo1',
-	  COLLECTION = 'data';
+const CONN_STRING = 'mongodb://reekoh:reekoh@ds053194.mongolab.com:53194/rkhdemo',
+	  COLLECTION  = 'data',
+	  _ID         = new Date().getTime();
 
 var cp          = require('child_process'),
 	should      = require('should'),
 	MongoClient = require('mongodb').MongoClient,
-	randomId    = require('node-uuid').v4(),
 	mongoStorage;
+
+var record = {
+	_id: _ID,
+	co2: '11%',
+	temp: 23,
+	quality: 11.25,
+	random_data: 'abcdefg'
+};
 
 describe('MongoDB Storage', function () {
 	this.slow(8000);
@@ -55,26 +63,30 @@ describe('MongoDB Storage', function () {
 		it('should process and insert the data into the database', function (done) {
 			mongoStorage.send({
 				type: 'data',
-				data: {
-					rand: randomId
-				}
+				data: record
 			}, done);
 		});
 
 		it('should have inserted the document on the database', function (done) {
+			this.timeout(8000);
+
 			MongoClient.connect(CONN_STRING, function (error, db) {
 				should.ifError(error);
 
 				var _collection = db.collection(COLLECTION);
 
 				_collection.find({
-					rand: randomId
+					_id: _ID
 				}).toArray(function (err, docs) {
-					should.ifError(error);
+					should.ifError(err);
 					should.equal(1, docs.length);
 
-					console.log('Found the following records');
-					console.log(docs);
+					var doc = docs[0];
+
+					should.equal(record.co2, doc.co2, 'Data validation failed. Field: co2');
+					should.equal(record.temp, doc.temp, 'Data validation failed. Field: temp');
+					should.equal(record.quality, doc.quality, 'Data validation failed. Field: quality');
+					should.equal(record.random_data, doc.random_data, 'Data validation failed. Field: random_data');
 
 					db.close(true, done);
 				});
