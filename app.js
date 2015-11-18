@@ -1,16 +1,15 @@
 'use strict';
 
-var MongoClient = require('mongodb').MongoClient,
-	platform    = require('./platform'),
+var MongoClient   = require('mongodb').MongoClient,
+	isPlainObject = require('lodash.isplainobject'),
+	platform      = require('./platform'),
 	db, collection;
 
 /*
  * Listen for the data event.
  */
 platform.on('data', function (data) {
-	var isJSON = require('is-json');
-
-	if (isJSON(data, true)) {
+	if (isPlainObject(data)) {
 		var _collection = db.collection(collection);
 
 		_collection.insertOne(data, function (error) {
@@ -39,13 +38,13 @@ platform.on('close', function () {
 	var domain = require('domain');
 	var d = domain.create();
 
-	d.on('error', function(error) {
+	d.on('error', function (error) {
 		console.error(error);
 		platform.handleException(error);
 		platform.notifyClose();
 	});
 
-	d.run(function() {
+	d.run(function () {
 		db.close(true, function () {
 			platform.notifyClose();
 		});
