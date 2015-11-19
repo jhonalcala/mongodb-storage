@@ -42,11 +42,13 @@ platform.on('close', function () {
 		console.error(error);
 		platform.handleException(error);
 		platform.notifyClose();
+		d.exit();
 	});
 
 	d.run(function () {
 		db.close(true, function () {
 			platform.notifyClose();
+			d.exit();
 		});
 	});
 });
