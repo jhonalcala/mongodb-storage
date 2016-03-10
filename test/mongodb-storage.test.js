@@ -1,6 +1,6 @@
 'use strict';
 
-const CONN_STRING = 'mongodb://reekoh:reekoh@ds053194.mongolab.com:53194/rkhdemo',
+const CONN_STRING = 'mongodb://reekohdev:Reekoh2016@ds015398.mlab.com:15398/reekoh-mongo-test',
 	  COLLECTION  = 'data',
 	  _ID         = new Date().getTime();
 
