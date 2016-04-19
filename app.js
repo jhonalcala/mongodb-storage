@@ -1,36 +1,40 @@
 'use strict';
 
-var MongoClient   = require('mongodb').MongoClient,
-	isPlainObject = require('lodash.isplainobject'),
-	isArray = require('lodash.isarray'),
-	async = require('async'),
+var async         = require('async'),
+	isArray       = require('lodash.isarray'),
 	platform      = require('./platform'),
+	MongoClient   = require('mongodb').MongoClient,
+	isPlainObject = require('lodash.isplainobject'),
 	db, collection;
 
-let sendData = (data) => {
-	var _collection = db.collection(collection);
+let sendData = function (data, callback) {
+	let _collection = db.collection(collection);
 
-	_collection.insertOne(data, function (error) {
-		if (error) {
-			console.error('Failed to save record in MongoDB.', error);
-			platform.handleException(error);
-		}
-		else {
+	_collection.insertOne(data, function (insertError, result) {
+		if (!insertError) {
 			platform.log(JSON.stringify({
 				title: 'Record inserted in MongoDB',
-				data: data
+				data: Object.assign(data, {
+					_id: result.insertedId
+				})
 			}));
 		}
+
+		callback(insertError);
 	});
 };
 
 platform.on('data', function (data) {
-	if(isPlainObject(data)){
-		sendData(data);
+	if (isPlainObject(data)) {
+		sendData(data, (error) => {
+			if (error) platform.handleException(error);
+		});
 	}
-	else if(isArray(data)){
-		async.each(data, function(datum){
-			sendData(datum);
+	else if (isArray(data)) {
+		async.each(data, (datum, done) => {
+			sendData(datum, done);
+		}, (error) => {
+			if (error) platform.handleException(error);
 		});
 	}
 	else
@@ -69,6 +73,10 @@ platform.once('ready', function (options) {
 		if (error) {
 			console.error('Error connecting to MongoDB.', error);
 			platform.handleException(error);
+
+			setTimeout(() => {
+				process.exit(1);
+			});
 		}
 		else {
 			db = _db;
