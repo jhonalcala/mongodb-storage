@@ -2,33 +2,39 @@
 
 var MongoClient   = require('mongodb').MongoClient,
 	isPlainObject = require('lodash.isplainobject'),
+	isArray = require('lodash.isarray'),
+	async = require('async'),
 	platform      = require('./platform'),
 	db, collection;
 
-/*
- * Listen for the data event.
- */
-platform.on('data', function (data) {
-	if (isPlainObject(data)) {
-		var _collection = db.collection(collection);
+let sendData = (data) => {
+	var _collection = db.collection(collection);
 
-		_collection.insertOne(data, function (error) {
-			if (error) {
-				console.error('Failed to save record in MongoDB.', error);
-				platform.handleException(error);
-			}
-			else {
-				platform.log(JSON.stringify({
-					title: 'Record inserted in MongoDB',
-					data: data
-				}));
-			}
+	_collection.insertOne(data, function (error) {
+		if (error) {
+			console.error('Failed to save record in MongoDB.', error);
+			platform.handleException(error);
+		}
+		else {
+			platform.log(JSON.stringify({
+				title: 'Record inserted in MongoDB',
+				data: data
+			}));
+		}
+	});
+};
+
+platform.on('data', function (data) {
+	if(isPlainObject(data)){
+		sendData(data);
+	}
+	else if(isArray(data)){
+		async.each(data, function(datum){
+			sendData(datum);
 		});
 	}
-	else {
-		console.error('Invalid Data', data);
-		platform.handleException(new Error('Invalid data received ' + data));
-	}
+	else
+		platform.handleException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`));
 });
 
 /*
