@@ -1,87 +1,61 @@
-'use strict';
+'use strict'
 
-var async         = require('async'),
-	isArray       = require('lodash.isarray'),
-	platform      = require('./platform'),
-	MongoClient   = require('mongodb').MongoClient,
-	isPlainObject = require('lodash.isplainobject'),
-	db, collection;
+const reekoh = require('demo-reekoh-node')
+const _plugin = new reekoh.plugins.Storage()
 
-let sendData = function (data, callback) {
-	let _collection = db.collection(collection);
+const isArray = Array.isArray
+const async = require('async')
+const MongoClient = require('mongodb').MongoClient
+const isPlainObject = require('lodash.isplainobject')
 
-	_collection.insertOne(data, function (insertError, result) {
-		if (!insertError) {
-			platform.log(JSON.stringify({
-				title: 'Record inserted in MongoDB',
-				data: Object.assign(data, {
-					_id: result.insertedId
-				})
-			}));
-		}
+let _db = null
 
-		callback(insertError);
-	});
-};
+let sendData = (data, callback) => {
+  let collection = _db.collection(process.env.MONGODB_COLLECTION)
 
-platform.on('data', function (data) {
-	if (isPlainObject(data)) {
-		sendData(data, (error) => {
-			if (error) platform.handleException(error);
-		});
-	}
-	else if (isArray(data)) {
-		async.each(data, (datum, done) => {
-			sendData(datum, done);
-		}, (error) => {
-			if (error) platform.handleException(error);
-		});
-	}
-	else
-		platform.handleException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`));
-});
+  collection.insertOne(data, (err, result) => {
+    if (!err) {
+      _plugin.log(JSON.stringify({
+        title: 'Record inserted in MongoDB',
+        data: Object.assign(data, { _id: result.insertedId })
+      }))
+    }
 
-/*
- * Event to listen to in order to gracefully release all resources bound to this service.
- */
-platform.on('close', function () {
-	var domain = require('domain');
-	var d = domain.create();
+    process.send({ type: 'processed' })
+    callback(err)
+  })
+}
 
-	d.once('error', function (error) {
-		console.error(error);
-		platform.handleException(error);
-		platform.notifyClose();
-		d.exit();
-	});
+_plugin.on('data', (data) => {
+  if (isPlainObject(data)) {
+    sendData(data, (err) => {
+      if (err) _plugin.logException(err)
+    })
+  } else if (isArray(data)) {
+    async.each(data, (datum, done) => {
+      sendData(datum, done)
+    }, (err) => {
+      if (err) return _plugin.logException(err)
+    })
+  } else {
+    _plugin.logException(new Error(`Invalid data received. Data must be a valid Array/JSON Object or a collection of objects. Data: ${data}`))
+  }
+})
 
-	d.run(function () {
-		db.close(true, function () {
-			platform.notifyClose();
-			d.exit();
-		});
-	});
-});
+_plugin.once('ready', () => {
 
-/*
- * Listen for the ready event.
- */
-platform.once('ready', function (options) {
-	collection = options.collection;
+  MongoClient.connect(process.env.MONGODB_CONN_STRING, (error, db) => {
+    if (error) {
+      console.error('Error connecting to MongoDB.', error)
+      _plugin.logException(error)
 
-	MongoClient.connect(options.connstring, function (error, _db) {
-		if (error) {
-			console.error('Error connecting to MongoDB.', error);
-			platform.handleException(error);
-
-			setTimeout(() => {
-				process.exit(1);
-			});
-		}
-		else {
-			db = _db;
-			platform.log('MongoDB Storage Initialized.');
-			platform.notifyReady();
-		}
-	});
-});
+      setTimeout(() => {
+        process.exit(1)
+      })
+    } else {
+      _db = db
+      _plugin.log('MongoDB Storage Initialized.')
+      process.send({ type: 'ready' })
+    }
+  })
+})

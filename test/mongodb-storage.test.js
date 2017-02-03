@@ -1,96 +1,106 @@
-'use strict';
+/* global describe, it, before, after */
+'use strict'
 
-const CONN_STRING = 'mongodb://reekohdev:Reekoh2016@ds015398.mlab.com:15398/reekoh-mongo-test',
-	  COLLECTION  = 'data',
-	  _ID         = new Date().getTime();
+const _ID = new Date().getTime()
 
-var cp          = require('child_process'),
-	should      = require('should'),
-	MongoClient = require('mongodb').MongoClient,
-	mongoStorage;
+const amqp = require('amqplib')
+const should = require('should')
+const cp = require('child_process')
+const MongoClient = require('mongodb').MongoClient
 
-var record = {
-	_id: _ID,
-	co2: '11%',
-	temp: 23,
-	quality: 11.25,
-	random_data: 'abcdefg'
-};
+let _storage = null
+let _channel = null
+let _conn = null
+
+let record = {
+  _id: _ID,
+  co2: '11%',
+  temp: 23,
+  quality: 11.25,
+  random_data: 'abcdefg'
+}
 
 describe('MongoDB Storage', function () {
-	this.slow(8000);
+  this.slow(8000)
 
-	after('terminate child process', function () {
-		mongoStorage.send({
-			type: 'close'
-		});
+  before('init', () => {
+    process.env.INPUT_PIPE = 'demo.pipe.storage'
+    process.env.BROKER = 'amqp://guest:guest@127.0.0.1/'
 
-		setTimeout(function () {
-			mongoStorage.kill('SIGKILL');
-		}, 4000);
-	});
+    process.env.MONGODB_COLLECTION = 'data'
+    process.env.MONGODB_CONN_STRING = 'mongodb://reekohdev:Reekoh2016@ds015398.mlab.com:15398/reekoh-mongo-test'
 
-	describe('#spawn', function () {
-		it('should spawn a child process', function () {
-			should.ok(mongoStorage = cp.fork(process.cwd()), 'Child process not spawned.');
-		});
-	});
+    amqp.connect(process.env.BROKER)
+      .then((conn) => {
+        _conn = conn
+        return conn.createChannel()
+      }).then((channel) => {
+        _channel = channel
+      }).catch((err) => {
+        console.log(err)
+      })
+  })
 
-	describe('#handShake', function () {
-		it('should notify the parent process when ready within 5 seconds', function (done) {
-			this.timeout(8000);
+  after('terminate child process', function () {
+    _conn.close()
+    setTimeout(() => {
+      _storage.kill('SIGKILL')
+    }, 4000)
+  })
 
-			mongoStorage.on('message', function (message) {
-				if (message.type === 'ready')
-					done();
-			});
+  describe('#spawn', function () {
+    it('should spawn a child process', function () {
+      should.ok(_storage = cp.fork(process.cwd()), 'Child process not spawned.')
+    })
+  })
 
-			mongoStorage.send({
-				type: 'ready',
-				data: {
-					options: {
-						connstring: CONN_STRING,
-						collection: COLLECTION
-					}
-				}
-			}, function (error) {
-				should.ifError(error);
-			});
-		});
-	});
+  describe('#handShake', function () {
+    it('should notify the parent process when ready within 5 seconds', function (done) {
+      this.timeout(8000)
 
-	describe('#data', function () {
-		it('should process and insert the data into the database', function (done) {
-			mongoStorage.send({
-				type: 'data',
-				data: record
-			}, done);
-		});
+      _storage.on('message', (message) => {
+        if (message.type === 'ready') {
+          done()
+        }
+      })
+    })
+  })
 
-		it('should have inserted the document on the database', function (done) {
-			this.timeout(8000);
+  describe('#data', function () {
+    it('should process and insert the data into the database', function (done) {
+      this.timeout(8000)
+      _channel.sendToQueue(process.env.INPUT_PIPE, new Buffer(JSON.stringify(record)))
 
-			MongoClient.connect(CONN_STRING, function (error, db) {
-				should.ifError(error);
+      _storage.on('message', (msg) => {
+        if (msg.type === 'processed') done()
+      })
+    })
 
-				var _collection = db.collection(COLLECTION);
+    it('should have inserted the document on the database', function (done) {
+      this.timeout(8000)
 
-				_collection.find({
-					_id: _ID
-				}).toArray(function (err, docs) {
-					should.ifError(err);
-					should.equal(1, docs.length);
+      MongoClient.connect(process.env.MONGODB_CONN_STRING, (error, db) => {
+        should.ifError(error)
 
-					var doc = docs[0];
+        let collection = db.collection(process.env.MONGODB_COLLECTION)
 
-					should.equal(record.co2, doc.co2, 'Data validation failed. Field: co2');
-					should.equal(record.temp, doc.temp, 'Data validation failed. Field: temp');
-					should.equal(record.quality, doc.quality, 'Data validation failed. Field: quality');
-					should.equal(record.random_data, doc.random_data, 'Data validation failed. Field: random_data');
+        collection.find({
+          _id: _ID
+        }).toArray((err, docs) => {
+          should.ifError(err)
+          should.equal(1, docs.length)
 
-					db.close(true, done);
-				});
-			});
-		});
-	});
-});
+          let doc = docs[0]
+
+          should.equal(record.co2, doc.co2, 'Data validation failed. Field: co2')
+          should.equal(record.temp, doc.temp, 'Data validation failed. Field: temp')
+          should.equal(record.quality, doc.quality, 'Data validation failed. Field: quality')
+          should.equal(record.random_data, doc.random_data, 'Data validation failed. Field: random_data')
+
+          db.close(true, done)
+        })
+      })
+    })
+
+  })
+})
