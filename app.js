@@ -1,9 +1,8 @@
 'use strict'
 
-const reekoh = require('demo-reekoh-node')
+const reekoh = require('reekoh')
 const _plugin = new reekoh.plugins.Storage()
 
-const isArray = Array.isArray
 const async = require('async')
 const MongoClient = require('mongodb').MongoClient
 const isPlainObject = require('lodash.isplainobject')
@@ -11,7 +10,7 @@ const isPlainObject = require('lodash.isplainobject')
 let _db = null
 
 let sendData = (data, callback) => {
-  let collection = _db.collection(process.env.MONGODB_COLLECTION)
+  let collection = _db.collection(_plugin.config.collection)
 
   collection.insertOne(data, (err, result) => {
     if (!err) {
@@ -31,7 +30,7 @@ _plugin.on('data', (data) => {
     sendData(data, (err) => {
       if (err) _plugin.logException(err)
     })
-  } else if (isArray(data)) {
+  } else if (Array.isArray(data)) {
     async.each(data, (datum, done) => {
       sendData(datum, done)
     }, (err) => {
@@ -43,8 +42,7 @@ _plugin.on('data', (data) => {
 })
 
 _plugin.once('ready', () => {
-
-  MongoClient.connect(process.env.MONGODB_CONN_STRING, (error, db) => {
+  MongoClient.connect(_plugin.config.connstring, (error, db) => {
     if (error) {
       console.error('Error connecting to MongoDB.', error)
       _plugin.logException(error)
