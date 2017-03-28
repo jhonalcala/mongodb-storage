@@ -3,7 +3,6 @@
 
 const amqp = require('amqplib')
 const should = require('should')
-const cp = require('child_process')
 const MongoClient = require('mongodb').MongoClient
 
 const _ID = new Date().getTime()
@@ -28,7 +27,6 @@ let record = {
 }
 
 describe('MongoDB Storage', function () {
-  this.slow(8000)
 
   before('init', () => {
     process.env.BROKER = BROKER
@@ -45,28 +43,15 @@ describe('MongoDB Storage', function () {
     })
   })
 
-  after('terminate child process', function () {
+  after('terminate', function () {
     _conn.close()
-    setTimeout(() => {
-      _app.kill('SIGKILL')
-    }, 4000)
   })
 
-  describe('#spawn', function () {
-    it('should spawn a child process', function () {
-      should.ok(_app = cp.fork(process.cwd()), 'Child process not spawned.')
-    })
-  })
-
-  describe('#handShake', function () {
-    it('should notify the parent process when ready within 5 seconds', function (done) {
-      this.timeout(8000)
-
-      _app.on('message', (message) => {
-        if (message.type === 'ready') {
-          done()
-        }
-      })
+  describe('#start', function () {
+    it('should start the app', function (done) {
+      this.timeout(10000)
+      _app = require('../app')
+      _app.once('init', done)
     })
   })
 
@@ -74,10 +59,7 @@ describe('MongoDB Storage', function () {
     it('should process and insert the data into the database', function (done) {
       this.timeout(8000)
       _channel.sendToQueue(INPUT_PIPE, new Buffer(JSON.stringify(record)))
-
-      _app.on('message', (msg) => {
-        if (msg.type === 'processed') done()
-      })
+      _app.on('processed', done)
     })
 
     it('should have inserted the document on the database', function (done) {
