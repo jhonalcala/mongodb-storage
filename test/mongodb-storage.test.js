@@ -1,96 +1,91 @@
-'use strict';
+/* global describe, it, before, after */
+'use strict'
 
-const CONN_STRING = 'mongodb://reekohdev:Reekoh2016@ds015398.mlab.com:15398/reekoh-mongo-test',
-	  COLLECTION  = 'data',
-	  _ID         = new Date().getTime();
+const amqp = require('amqplib')
+const should = require('should')
+const MongoClient = require('mongodb').MongoClient
 
-var cp          = require('child_process'),
-	should      = require('should'),
-	MongoClient = require('mongodb').MongoClient,
-	mongoStorage;
+const _ID = new Date().getTime()
+const INPUT_PIPE = 'demo.pipe.storage'
+const BROKER = 'amqp://guest:guest@127.0.0.1/'
 
-var record = {
-	_id: _ID,
-	co2: '11%',
-	temp: 23,
-	quality: 11.25,
-	random_data: 'abcdefg'
-};
+let _app = null
+let _conn = null
+let _channel = null
+
+let conf = {
+  collection: 'data',
+  connstring: 'mongodb://reekohdev:Reekoh2016@ds015398.mlab.com:15398/reekoh-mongo-test'
+}
+
+let record = {
+  _id: _ID,
+  co2: '11%',
+  temp: 23,
+  quality: 11.25,
+  randomData: 'abcdefg'
+}
 
 describe('MongoDB Storage', function () {
-	this.slow(8000);
 
-	after('terminate child process', function () {
-		mongoStorage.send({
-			type: 'close'
-		});
+  before('init', () => {
+    process.env.BROKER = BROKER
+    process.env.INPUT_PIPE = INPUT_PIPE
+    process.env.CONFIG = JSON.stringify(conf)
+    
+    amqp.connect(BROKER).then((conn) => {
+      _conn = conn
+      return conn.createChannel()
+    }).then((channel) => {
+      _channel = channel
+    }).catch((err) => {
+      console.log(err)
+    })
+  })
 
-		setTimeout(function () {
-			mongoStorage.kill('SIGKILL');
-		}, 4000);
-	});
+  after('terminate', function () {
+    _conn.close()
+  })
 
-	describe('#spawn', function () {
-		it('should spawn a child process', function () {
-			should.ok(mongoStorage = cp.fork(process.cwd()), 'Child process not spawned.');
-		});
-	});
+  describe('#start', function () {
+    it('should start the app', function (done) {
+      this.timeout(10000)
+      _app = require('../app')
+      _app.once('init', done)
+    })
+  })
 
-	describe('#handShake', function () {
-		it('should notify the parent process when ready within 5 seconds', function (done) {
-			this.timeout(8000);
+  describe('#data', function () {
+    it('should process and insert the data into the database', function (done) {
+      this.timeout(8000)
+      _channel.sendToQueue(INPUT_PIPE, new Buffer(JSON.stringify(record)))
+      _app.on('processed', done)
+    })
 
-			mongoStorage.on('message', function (message) {
-				if (message.type === 'ready')
-					done();
-			});
+    it('should have inserted the document on the database', function (done) {
+      this.timeout(10000)
 
-			mongoStorage.send({
-				type: 'ready',
-				data: {
-					options: {
-						connstring: CONN_STRING,
-						collection: COLLECTION
-					}
-				}
-			}, function (error) {
-				should.ifError(error);
-			});
-		});
-	});
+      MongoClient.connect(conf.connstring, (error, db) => {
+        should.ifError(error)
 
-	describe('#data', function () {
-		it('should process and insert the data into the database', function (done) {
-			mongoStorage.send({
-				type: 'data',
-				data: record
-			}, done);
-		});
+        let collection = db.collection(conf.collection)
 
-		it('should have inserted the document on the database', function (done) {
-			this.timeout(8000);
+        collection.find({
+          _id: _ID
+        }).toArray((err, docs) => {
+          should.ifError(err)
+          should.equal(1, docs.length)
 
-			MongoClient.connect(CONN_STRING, function (error, db) {
-				should.ifError(error);
+          let doc = docs[0]
 
-				var _collection = db.collection(COLLECTION);
+          should.equal(record.co2, doc.co2, 'Data validation failed. Field: co2')
+          should.equal(record.temp, doc.temp, 'Data validation failed. Field: temp')
+          should.equal(record.quality, doc.quality, 'Data validation failed. Field: quality')
+          should.equal(record.randomData, doc.randomData, 'Data validation failed. Field: randomData')
 
-				_collection.find({
-					_id: _ID
-				}).toArray(function (err, docs) {
-					should.ifError(err);
-					should.equal(1, docs.length);
-
-					var doc = docs[0];
-
-					should.equal(record.co2, doc.co2, 'Data validation failed. Field: co2');
-					should.equal(record.temp, doc.temp, 'Data validation failed. Field: temp');
-					should.equal(record.quality, doc.quality, 'Data validation failed. Field: quality');
-					should.equal(record.random_data, doc.random_data, 'Data validation failed. Field: random_data');
-
-					db.close(true, done);
-				});
-			});
-		});
-	});
-});
+          db.close(true, done)
+        })
+      })
+    })
+  })
+})
